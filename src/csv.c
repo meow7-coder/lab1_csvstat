@@ -148,6 +148,10 @@ int csv_read_record(FILE *f, CsvRecord *rec) {
                     rec->raw_length++; 
                     c = fgetc(f); 
                 }
+                if (c != ',' && c != '\n' && c != EOF) {
+                    free(buf);
+                    return -1;
+                }
                 continue;
             }
 
