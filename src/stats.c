@@ -36,50 +36,35 @@ void stats_update(ColumnStats *st, ColumnType col_type, const char *field, int q
     }
     st->non_null++;
 
-    if (col_type == TYPE_INT && ft == TYPE_INT) {
+     if (col_type == TYPE_INT) {
         char *end = NULL;
         long long v = strtoll(field, &end, 10);
+        if (!end || *end != '\0') return;
 
-        if (!end || *end != '\0')
-            return;
-        if (v < st->int_min)
-            st->int_min = v;
-        if (v > st->int_max)
-            st->int_max = v;
+        if (v < st->int_min) st->int_min = v;
+        if (v > st->int_max) st->int_max = v;
         st->int_sum += (long double)v;
-        if (v > 0)
-            st->int_positive++;
-        if (v < 0)
-            st->int_negative++;
-        if (v % 2 == 0)
-            st->int_even++;
+        if (v > 0) st->int_positive++;
+        if (v < 0) st->int_negative++;
+        if (v % 2 == 0) st->int_even++;
     } 
-    else if (col_type == TYPE_DOUBLE && ft == TYPE_DOUBLE) {
+    else if (col_type == TYPE_DOUBLE) {
         char *end = NULL;
         double v = strtod(field, &end);
-
-        if (!end || *end != '\0') 
-            return;
-        if (v < st->double_min) 
-            st->double_min = v;
-        if (v > st->double_max) 
-            st->double_max = v;
+        if (!end || *end != '\0') return;
+        if (v < st->double_min) st->double_min = v;
+        if (v > st->double_max) st->double_max = v;
         st->double_sum += (long double)v;
-        if (v > 0.0) 
-            st->double_positive++;
-        if (v < 0.0)   
-            st->double_negative++;
+        if (v > 0.0) st->double_positive++;
+        if (v < 0.0) st->double_negative++;
+        if (v == floor(v)) st->double_integer++;
     } 
     else if (col_type == TYPE_STRING) {
         size_t len = strlen(field);
-
-        if (len < st->str_min_len) 
-            st->str_min_len = len;
-        if (len > st->str_max_len) 
-            st->str_max_len = len;
+        if (len < st->str_min_len) st->str_min_len = len;
+        if (len > st->str_max_len) st->str_max_len = len;
         st->str_sum_len += (long double)len;
-        if (len == 0) 
-            st->str_empty++;
+        if (len == 0) st->str_empty++;
     }
 }
 
@@ -114,11 +99,19 @@ void stats_print(const ColumnStats *st, ColumnType type, int index, const char *
         printf("positive %lld\nnegative %lld\neven %lld\n", st->int_positive, st->int_negative, st->int_even);
     } 
     else if (type == TYPE_DOUBLE) {
-        printf("min %.6f\n", n ? st->double_min : 0.0);
-        printf("max %.6f\n", n ? st->double_max : 0.0);
+        double dmin = n ? st->double_min : 0.0;
+        double dmax = n ? st->double_max : 0.0;
         long double m = n ? st->double_sum / (long double)n : 0.0L;
-        printf("mean %.6f\n", (double)m);
-        printf("positive %lld\nnegative %lld\n", st->double_positive, st->double_negative);
+        double dmean = (double)m;
+        
+        if (dmin == 0.0) dmin = 0.0;
+        if (dmax == 0.0) dmax = 0.0;
+        if (dmean == 0.0) dmean = 0.0;
+        
+        printf("min %.6f\n", dmin);
+        printf("max %.6f\n", dmax);
+        printf("mean %.6f\n", dmean);
+        printf("positive %lld\nnegative %lld\ninteger %lld\n", st->double_positive, st->double_negative, st->double_integer);
     } 
     else {
         printf("min_length %zu\n", n ? st->str_min_len : 0);
@@ -177,6 +170,7 @@ int stats_run(const char *filename) {
     if (ret < 0) {
         fclose(f); 
         schema_free(&schema);
+        csv_record_free(&rec);
         fprintf(stderr, "Error: incorrect CSV format\n"); 
         return 1;
     }
@@ -247,6 +241,7 @@ int stats_run(const char *filename) {
         fclose(f); 
         free(st); 
         schema_free(&schema);
+        csv_record_free(&rec);
         fprintf(stderr, "Error: incorrect CSV format\n"); 
         return 1;
     }
