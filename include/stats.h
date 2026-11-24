@@ -17,7 +17,8 @@ typedef struct {
     double double_min, double_max;
     long double double_sum;
     long long double_positive, double_negative;
-
+    long long double_integer; 
+    
     // STRING
     size_t str_min_len, str_max_len;
     long double str_sum_len;
