@@ -56,6 +56,7 @@ int report_run(const char *in, const char *outname) {
     if (ret < 0) {
         fclose(fi);
         schema_free(&s);
+        csv_record_free(&rec);
         fprintf(stderr, "Error: incorrect CSV format\n");
         return 1;
     }
@@ -129,6 +130,7 @@ int report_run(const char *in, const char *outname) {
         fclose(fi);
         free(st);
         schema_free(&s);
+        csv_record_free(&rec);
         fprintf(stderr, "Error: incorrect CSV format\n");
         return 1;
     }
@@ -162,10 +164,20 @@ int report_run(const char *in, const char *outname) {
                 fprintf(fo, "Positive: %lld\nNegative: %lld\nEven: %lld\n", c->int_positive, c->int_negative, c->int_even);
             }
             else if (s.types[i] == TYPE_DOUBLE) {
-                fprintf(fo, "Min: %.6f\n", n ? c->double_min : 0.0);
-                fprintf(fo, "Max: %.6f\n", n ? c->double_max : 0.0);
-                fprintf(fo, "Mean: %.6f\n", (double)(n ? c->double_sum / (long double)n : 0.0L));
+                double dmin = n ? st->double_min : 0.0;
+                double dmax = n ? st->double_max : 0.0;
+                long double m = n ? st->double_sum / (long double)n : 0.0L;
+                double dmean = (double)m;
+
+                if (dmin == 0.0) dmin = 0.0;
+                if (dmax == 0.0) dmax = 0.0;
+                if (dmean == 0.0) dmean = 0.0;
+
+                fprintf(fo, "Min: %.6f\n", dmin);
+                fprintf(fo, "Max: %.6f\n", dmax);
+                fprintf(fo, "Mean: %.6f\n", dmean);
                 fprintf(fo, "Positive: %lld\nNegative: %lld\n", c->double_positive, c->double_negative);
+                fprintf(fo, "Integer:  %lld\n", c->double_integer);
             }
             else {
                 fprintf(fo, "Min len: %zu\n", n ? c->str_min_len : 0);
