@@ -45,7 +45,7 @@ int schema_read_header(FILE *f, Schema *s, long *rows) {
     }
 
     for (int i = 0; i < rec.count; i++) {
-        if (!rec.quoted[i] && csv_is_blank(rec.fields[i])) { 
+        if (rec.fields[i][0] == '\0' || (!rec.quoted[i] && csv_is_blank(rec.fields[i]))) { 
             csv_record_free(&rec); 
             return 1; 
         }
@@ -128,6 +128,7 @@ int schema_run(const char *filename) {
     if (ret < 0) {
         fclose(f); 
         schema_free(&s);
+        csv_record_free(&rec);
         fprintf(stderr, "Error: incorrect CSV format\n"); 
         return 1;
     }
